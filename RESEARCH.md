@@ -171,7 +171,11 @@ Complete correction table (all integer sizes):
 | 23px | 24px | 23px | +1 |
 | 24px+ | matches | matches | 0 |
 
-**Fix implemented**: auto-detect by measuring `ctx.measureText("😀").width - fontSize`. If positive, subtract per emoji grapheme. Detection uses `\p{Emoji_Presentation}` regex + VS16 check. Result: Chrome 99.4% → 99.7%.
+**Fix implemented**: auto-detect by comparing canvas emoji width vs actual DOM emoji width (one DOM measurement per font, cached). Safari renders emoji wider than fontSize at small sizes but canvas and DOM agree — so no correction needed there. The original approach (canvas vs fontSize) over-corrected on Safari.
+
+Filed as browser bugs:
+- Chrome: [issues.chromium.org/489494015](https://issues.chromium.org/issues/489494015)
+- Firefox: [bugzilla.mozilla.org/2020894](https://bugzilla.mozilla.org/show_bug.cgi?id=2020894)
 
 ## Discovery: HarfBuzz guessSegmentProperties RTL bug
 
