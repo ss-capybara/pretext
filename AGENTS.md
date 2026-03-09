@@ -32,6 +32,8 @@ Internal notes for contributors and agents. Use `README.md` as the public source
 - Word and grapheme segmenters are hoisted at module scope. Any locale reset should also clear the word cache.
 - Punctuation is merged into preceding word-like segments only, never into spaces.
 - Arabic no-space punctuation clusters such as `فيقول:وعليك` and `همزةٌ،ما` are merged during `prepare()`; keep that logic in preprocessing, not `layout()`.
+- That Arabic no-space merge set is intentionally narrow right now: colon / period / Arabic comma / Arabic semicolon. Repeated `!` was a counterexample that over-merged.
+- If `Intl.Segmenter` emits `" " + combining marks` before Arabic text (for example `كل ِّواحدةٍ`), split it into `" "` plus marks-prefix-on-next-word during preprocessing.
 - Non-word, non-space segments are break opportunities, same as words.
 - CJK grapheme splitting plus kinsoku merging keeps prohibited punctuation attached to adjacent graphemes.
 - Emoji correction is auto-detected per font size, constant per emoji grapheme, and effectively font-independent.

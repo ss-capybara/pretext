@@ -293,10 +293,10 @@ const leftStickyPunctuation = new Set([
 ])
 
 const arabicNoSpaceTrailingPunctuation = new Set([
-  ':', ';', '?', '!', '.',
+  ':',
+  '.',
   '\u060C', // ،
   '\u061B', // ؛
-  '\u061F', // ؟
 ])
 
 const closingQuoteChars = new Set([
@@ -342,6 +342,15 @@ function isRepeatedSingleCharRun(segment: string, ch: string): boolean {
 function endsWithArabicNoSpacePunctuation(segment: string): boolean {
   if (!containsArabicScript(segment) || segment.length === 0) return false
   return arabicNoSpaceTrailingPunctuation.has(segment[segment.length - 1]!)
+}
+
+function splitLeadingSpaceAndMarks(segment: string): { space: string, marks: string } | null {
+  if (segment.length < 2 || segment[0] !== ' ') return null
+  const marks = segment.slice(1)
+  if (/^\p{M}+$/u.test(marks)) {
+    return { space: ' ', marks }
+  }
+  return null
 }
 
 function endsWithClosingQuote(text: string): boolean {
@@ -583,6 +592,18 @@ function buildMergedSegmentation(normalized: string): MergedSegmentation {
   mergedWordLike.length = compactLen
   mergedSpace.length = compactLen
   mergedStarts.length = compactLen
+
+  for (let i = 0; i < compactLen - 1; i++) {
+    const split = splitLeadingSpaceAndMarks(mergedTexts[i]!)
+    if (split === null) continue
+    if (mergedSpace[i + 1] || !containsArabicScript(mergedTexts[i + 1]!)) continue
+
+    mergedTexts[i] = split.space
+    mergedWordLike[i] = false
+    mergedSpace[i] = true
+    mergedTexts[i + 1] = split.marks + mergedTexts[i + 1]!
+    mergedStarts[i + 1] = mergedStarts[i]! + split.space.length
+  }
 
   return {
     len: compactLen,

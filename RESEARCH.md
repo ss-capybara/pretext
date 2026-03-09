@@ -420,17 +420,55 @@ Results after landing that merge:
 - official browser accuracy corpus stayed clean in Chrome, Safari, and Firefox
 - Korean coarse corpus stayed exact
 - Hindi coarse corpus stayed exact
-- Arabic coarse corpus improved from `43/61` exact to `58/61` exact
+- Arabic coarse corpus improved from `43/61` exact to `59/61` exact
 
 Remaining Arabic coarse misses after the merge:
 - `360 -> -34px`
-- `490 -> +34px`
 - `890 -> +34px`
 
 So this looks like a real keep:
 - prepare-time semantic improvement
 - no hot-path regression
 - large Arabic canary win
+
+One important refinement fell out immediately:
+- do **not** merge every punctuation-ended Arabic cluster with following no-space text
+- repeated exclamation marks (`أمون!!ولقد`) were a counterexample
+
+The safe keep so far is narrower:
+- keep colon / period / Arabic comma / Arabic semicolon in the no-space Arabic merge set
+- keep exclamation/question-style punctuation out until there is evidence they behave the same way
+
+## Arabic leading combining-mark fix
+
+Another small Arabic-specific preprocessing bug showed up after the no-space punctuation merge.
+
+`Intl.Segmenter` can emit a segment like:
+- `" ِّ"` (space + combining marks)
+
+in text such as:
+- `كل ِّواحدةٍ`
+
+That allowed the engine to strand the space-plus-marks on the previous line while the browser effectively kept the marks with the following Arabic word.
+
+The keepable fix was:
+- turn `["كل", " ِّ", "واحدةٍ"]` into `["كل", " ", "ِّواحدةٍ"]`
+
+This removed the old `كل ِّواحدة` class without affecting the official browser corpus.
+
+## Current Arabic frontier
+
+After the landed Arabic fixes, the remaining coarse Arabic canary is:
+- `59/61 exact`
+- remaining widths: `360` and `890`
+
+The remaining classes now look like:
+- `360`: local width/context drift (not the old segmentation bug anymore)
+- `890`: tiny near-edge tolerance (`~0.004px` overflow)
+
+So Arabic is now in a much narrower place:
+- the obvious preprocessable break classes are mostly handled
+- what remains looks more like a small amount of shaping/context drift plus one edge-tolerance case
 - no hot-path `measureText()` verification was reintroduced
 - the browser-facing public API stayed `prepare()` / `layout()`
 

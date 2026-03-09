@@ -118,6 +118,11 @@ describe('prepare invariants', () => {
     expect(prepared.segments).toEqual(['همزةٌ،ما', ' ', 'كان'])
   })
 
+  test('keeps leading arabic combining marks with the following word', () => {
+    const prepared = prepareWithSegments('كل ِّواحدةٍ', FONT)
+    expect(prepared.segments).toEqual(['كل', ' ', 'ِّواحدةٍ'])
+  })
+
   test('keeps devanagari danda punctuation attached to the preceding word', () => {
     const prepared = prepareWithSegments('नमस्ते। दुनिया॥', FONT)
     expect(prepared.segments).toEqual(['नमस्ते।', ' ', 'दुनिया॥'])
