@@ -133,20 +133,29 @@ function setViewportHeight(height: number): void {
   }
 }
 
-function setActiveAnchor(pane: Pane | null, lineIndex: number): void {
-  for (const candidate of panes) {
-    for (let i = 0; i < candidate.lineElements.length; i++) {
-      candidate.lineElements[i]!.classList.toggle(
-        'is-anchor',
-        pane !== null && candidate === pane && i === lineIndex,
-      )
-    }
-  }
-}
-
 function describeLine(line: LayoutLine): string {
   return `${line.text} • ${formatCursor(line.start)}→${formatCursor(line.end)} • ${line.width.toFixed(2)}px` +
     (line.trailingDiscretionaryHyphen ? ' • discretionary hyphen' : '')
+}
+
+function setActiveAnchor(anchor: LayoutCursor | null, sourcePane: Pane | null, sourceLineIndex: number): void {
+  for (const pane of panes) {
+    const activeIndex =
+      anchor === null
+        ? -1
+        : (pane === sourcePane
+          ? sourceLineIndex
+          : findAnchorLineIndex(pane.lines, anchor))
+
+    for (let i = 0; i < pane.lineElements.length; i++) {
+      pane.lineElements[i]!.classList.toggle('is-anchor', i === activeIndex)
+    }
+
+    if (activeIndex < 0 || activeIndex >= pane.lines.length) continue
+    const line = pane.lines[activeIndex]!
+    pane.meta.textContent =
+      `${pane.lines.length} lines • anchor L${activeIndex + 1} • ${formatCursor(line.start)}→${formatCursor(line.end)}`
+  }
 }
 
 function renderPane(pane: Pane, laidOut: LayoutLinesResult, width: number): void {
@@ -166,7 +175,7 @@ function renderPane(pane: Pane, laidOut: LayoutLinesResult, width: number): void
     el.style.top = `${i * LINE_HEIGHT}px`
     el.title = describeLine(line)
     el.addEventListener('mouseenter', () => {
-      setActiveAnchor(pane, i)
+      setActiveAnchor(line.start, pane, i)
       statAnchor.textContent = formatCursor(line.start)
       anchorMeta.textContent = `Hover anchor from pane ${pane.key.toUpperCase()}: ${describeLine(line)}`
     })
@@ -193,7 +202,7 @@ function syncFrom(source: Pane): void {
 
   syncing = true
   try {
-    setActiveAnchor(source, sourceIndex)
+    setActiveAnchor(sourceLine.start, source, sourceIndex)
     statAnchor.textContent = formatCursor(sourceLine.start)
     anchorMeta.textContent =
       `Pane ${source.key.toUpperCase()} is anchoring the shared cursor ${formatCursor(sourceLine.start)}. ` +
